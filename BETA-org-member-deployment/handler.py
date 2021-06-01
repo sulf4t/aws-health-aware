@@ -204,52 +204,53 @@ def send_email(event_details, eventType):
     AWS_REGION = os.environ['AWS_REGION']
     SUBJECT = os.environ['EMAIL_SUBJECT']
     BODY_HTML = get_message_for_email(event_details, eventType)
-    client = boto3.client('ses', region_name=AWS_REGION)
-    response = client.send_email(
-        Source=SENDER,
-        Destination={
-            'ToAddresses': RECIPIENT
-        },
-        Message={
-            'Body': {
-                'Html': {
-                    'Data': BODY_HTML
-                },
-            },
-            'Subject': {
-                'Charset': 'UTF-8',
-                'Data': SUBJECT,
-            },
-        },
-    )
-
+    send_email_client(SENDER, RECIPIENT, SUBJECT, BODY_HTML)
+    
 
 def send_org_email(event_details, eventType, affected_org_accounts, affected_org_entities):
-    SENDER = os.environ['FROM_EMAIL']
+    SENDER = os.environ['FROM_EMAIL']    
     RECIPIENT = os.environ['TO_EMAIL'].split(",")
-    #AWS_REGION = "us-east-1"
+    TO_EMAIL_TAG = os.environ['TO_EMAIL_TAG']
     AWS_REGION = os.environ['AWS_REGION']
     SUBJECT = os.environ['EMAIL_SUBJECT']
-    BODY_HTML = get_org_message_for_email(event_details, eventType, affected_org_accounts, affected_org_entities)
+    BODY_HTML = get_org_message_for_email(event_details, eventType, affected_org_accounts, affected_org_entities)    
+    if TO_EMAIL_TAG != 'None':
+        orga_client = boto3.client('organizations')
+        for account in affected_org_accounts:
+            RECIPIENT = ""
+            responseOrga = orga_client.list_tags_for_resource(
+                ResourceId=account,
+            )
+            for tag in responseOrga['Tags']:
+                print(tag)
+                if tag['Key'] == TO_EMAIL_TAG:
+                    RECIPIENT = [tag['Value']]
+            if RECIPIENT:
+                send_email_client(SENDER, RECIPIENT, SUBJECT, BODY_HTML)
+    else:        
+        send_email_client(SENDER, RECIPIENT, SUBJECT, BODY_HTML) 
+
+
+def send_email_client(sender, recipient, subject, body_html):
+    AWS_REGION = os.environ['AWS_REGION']
     client = boto3.client('ses', region_name=AWS_REGION)
     response = client.send_email(
-        Source=SENDER,
+        Source=sender,
         Destination={
-            'ToAddresses': RECIPIENT
+            'ToAddresses': recipient
         },
         Message={
             'Body': {
                 'Html': {
-                    'Data': BODY_HTML
+                    'Data': body_html
                 },
             },
             'Subject': {
                 'Charset': 'UTF-8',
-                'Data': SUBJECT,
+                'Data': subject,
             },
         },
     )
-
 
 # organization view affected accounts
 def get_health_org_accounts(health_client, event, event_arn):

@@ -27,6 +27,7 @@ Metadata:
         Parameters:
           - FromEmail
           - ToEmail
+          - EmailTag
           - Subject
       - Label:
           default: More Configurations - Optional
@@ -131,6 +132,11 @@ Parameters:
     Default: none@domain.com
     AllowedPattern: ^([\w+-.%]+@[\w-.]+\.[A-Za-z]+)(, ?[\w+-.%]+@[\w-.]+\.[A-Za-z]+)*$
     ConstraintDescription: 'ToEmail is not a valid, please verify entry. If not sending to email, leave as the default, none@domain.com.'   
+  EmailTag:
+    Description: >-
+      Enter your AWS account tag Key referencing the email adress of your account.
+    Type: String
+    Default: None  
   Subject:
     Description: Enter the subject of the email address
     Type: String
@@ -186,6 +192,7 @@ Resources:
                   - health:DescribeEventTypes
                   - health:DescribeAffectedEntities
                   - organizations:ListAccounts
+                  - organizations:ListTagsForResource
                 Resource: "*"                               
               - Effect: Allow
                 Action:
@@ -327,6 +334,8 @@ Resources:
             Ref: FromEmail
           TO_EMAIL:
             Ref: ToEmail
+          TO_EMAIL_TAG:
+            Ref: EmailTag
           EMAIL_SUBJECT:
             Ref: Subject
           DYNAMODB_TABLE:
